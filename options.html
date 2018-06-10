@@ -1,0 +1,203 @@
+<html>
+  <head>
+    <style>
+    code {
+      padding: 20px;
+      background: #f1f1f1;
+      margin: 20px;
+      display: block;
+      font-size: 13px;
+    }
+    button {
+      padding: 6px 16px;
+      border-radius: 0px;
+      background: #f3f3f3;
+      width: 80px;
+      border: 0px;
+    }
+    #save {
+      width: inherit;
+      padding: 8px 40px;
+      background: #f3f3f3;
+      border-radius: 3px;
+      float: left;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    #status {
+      font-size: 13px;
+      font-weight: 300;
+      float: left;
+      padding: 9px 20px;
+      text-transform: capitalize;
+      color: chocolate;
+    }
+    body {
+      width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      border-bottom: 3px solid black;
+      padding: 10px;
+      text-transform: uppercase;
+      font-size: 30px;
+      text-align: right;
+    }
+    h2 {
+      border-left: 3px solid #cacaca;
+      padding-left: 10px;
+      color: #484848;
+      margin-top: 50px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table thead {
+      font-weight: bold;
+      padding: 15px;
+      /*background-color: #dedede;*/
+      border-bottom: 2px solid #ccc;
+    }
+    table thead td {
+      padding: 10px;
+      border-bottom: 1px solid #cccccc;
+    }
+
+    table tbody td {
+      padding: 0px;
+      border-bottom: 1px solid #cccccc;
+    }
+
+    li {
+      list-style: none;
+    }
+
+    #captchas_urls input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      border: 0px;
+    }
+
+    #sinkholes_urls input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      border: 0px;
+    }
+
+    #request_interval {
+      width: 40px;
+      text-align: right;
+      border: 0;
+      background: whitesmoke;
+      padding: 6px 5px;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>
+      <button id="save">Save</button>
+      <div id="status"></div>
+      <div>Options</div>
+    </h1>
+
+    <div>
+      <h2>Stats</h2>
+      <div>
+        <ul>
+          <li>Requests without challenge: <b id="requests_without_challange">0</b></li>
+          <li>Requests with challenge: <b id="requests_with_challange">0</b></li>
+          <li>Solved in a row: <b id="solved_in_a_row">0</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <h2>General</h2>
+
+      <ul>
+        <li>
+          <input type="checkbox" id="captcha_code_clipboard" />
+          <label>Copy <i>gCaptchaCode</i> to clipboard</label>
+        </li>
+        <li>
+          <input type="checkbox" id="new_tab_switch" />
+          <label>Switch to a new tab to view ReCaptcha to be solved more quickly (<i>Human</i> only)</label>
+        </li>
+        <li>
+          <input type="checkbox" id="alert_user_solve_captcha" />
+          <label>Alert <i>Human</i> to solve captcha, if ReCaptcha ask to solve it?</label>
+        </li>
+        <li>
+          <input type="checkbox" id="sinkhole_on_manual_request" />
+          <label>Send <i>gCaptchaCode</i> to a sinkhole on <i>Human</i> request?</label>
+        </li>
+      </ul>
+
+      <h2>URLs</h2>
+      <div>
+        <p>The URLs added here will be available on right click in any page.</p>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <td>URL</td>
+              <td>SiteKey</td>
+              <td style="width: 10%;">Actions</td>
+            </tr>
+          </thead>
+          <tbody id="captchas_urls">
+            <tr>
+              <td>
+                <input style="width: 100%;" type="text" id="insert_url" placeholder="https://www.example.com/" />
+              </td>
+              <td>
+                <input style="width: 100%;" type="text" id="site_key" placeholder="3LdVBqhUUcAAAABgG0kNhtcpNQoPlDxj9hd9x2icZ" />
+              </td>
+              <td>
+                <button id="add_url">Add</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Sinkholes</h2>
+      <div>
+        <p>Sinkholes are endpoints that receive <i>gCaptchaCode</i> to request via other
+      IP, like for example TOR networks.</p>
+        <p>Your sinkhole will receive <i>referrer_url</i>, <i>guid</i> and <i>gCaptchaCode</i> as POST parameters.</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <td>URL</td>
+            <td style="width: 10%;">Actions</td>
+          </tr>
+        </thead>
+        <tbody id="sinkholes_urls">
+          <tr>
+            <td>
+              <input type="text" id="sinkhole_insert_url" placeholder="https://www.sinkhole.com/" />
+            </td>
+            <td>
+              <button id="sinkhole_add_url">Add</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Automation</h2>
+      <input type="checkbox" id="automator_switch" />
+      <label>Enabled</label>
+
+      <div>Request every <input id="request_interval" placeholder="120" /> minutes.</div>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>
