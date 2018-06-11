@@ -70,15 +70,11 @@ chrome.webRequest.onBeforeRequest.addListener(function(data) {
     }
 
     // Only affect URL inside the opened tab
-    if (Array.isArray(settings.captchas_urls)) {
-      settings.captchas_urls.forEach(function(captcha_url) {
-        if (captcha_url.insert_url == data.url) {
-          return {cancel: false};
-        }
-      });
-
-      return {cancel: true};
+    if (get_captch_url_by_url(data.url) !== false) {
+      return {cancel: false};
     }
+
+    return {cancel: true};
   }
 },{'urls': ["*://*/*"]}, ["blocking"]);
 
@@ -103,6 +99,21 @@ function exit(debuggeeId) {
 }
 
 /**
+ * Clean https:// and https:// and the last slash from URL for better efficiency
+ * on blocking the right URL requests.
+ *
+ * @var url string URL
+ */
+function clean_url(url) {
+  url = url.replace("http://", "").replace("https://", "");
+  if (url.substr(-1) == "/") {
+    url = url.substr(0, url.length - 1);
+  }
+
+  return url;
+}
+
+/**
  * Retrieve CAPTCHA URL by URL
  *
  * @var url string URL
@@ -111,7 +122,11 @@ function exit(debuggeeId) {
 function get_captch_url_by_url(url) {
   if (Array.isArray(settings.captchas_urls)) {
     for(var i = 0; i < settings.captchas_urls.length; i++) {
-      if (settings.captchas_urls[i].insert_url == url) {
+      // Ignore / and http and https
+      var url_to_compare = clean_url(url);
+      var captcha_url_to_compare = clean_url(settings.captchas_urls[i].insert_url);
+
+      if (captcha_url_to_compare == url_to_compare) {
         return settings.captchas_urls[i];
       }
     }
@@ -249,7 +264,8 @@ function create_tab(url, is_human_click) {
 }
 
 chrome.browserAction.onClicked.addListener(function(activeTab){
-  // Do nothing, for now
+  // Open Options
+  chrome.tabs.create({ url: "chrome-extension://" + chrome.runtime.id + "/options.html"});
 });
 
 function add_captcha_urls_to_context() {
@@ -306,7 +322,7 @@ chrome.storage.sync.get(['settings', 'guid', 'stats'], function(items) {
     settings = items.settings;
 
     // Create context
-    add_captcha_urls_to_context(settings);
+    add_captcha_urls_to_context();
   }
 });
 
