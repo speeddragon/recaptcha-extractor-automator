@@ -7,6 +7,8 @@ This is **NOT**:
 * ReCaptcha auto-click (it will not auto click in the checkbox when navigating in normal websites).
 * ReCaptcha challenge solver (it will not solve the challenge when requested).
 
+You can find it in [Chrome Web Store](https://chrome.google.com/webstore/detail/recaptcha-extractor-and-a/nfidonbbegfjbdplglbfbnikkncdcdmf).
+
 ## Features
 
 * Automator (request every X minutes).
