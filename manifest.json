@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "ReCaptcha Extractor and Automator",
   "description": "Solve, extract and automate ReCaptcha data collection.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "icons": {
     "128": "icon_128.png"
   },
@@ -26,5 +26,5 @@
     "default_icon": "icon_96.png",
     "default_title": "ReCaptcha Extractor and Automator"
   },
-  "web_accessible_resources": ["copy_to_clipboard.js","replace_recaptcha.js"]
+  "web_accessible_resources": ["wa67_copy_captcha.js", "copy_to_clipboard.js", "replace_recaptcha.js"]
 }

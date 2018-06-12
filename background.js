@@ -159,6 +159,21 @@ function get_captch_url_by_url(url) {
   return false;
 }
 
+function validate_and_send_to_sinkholes(captcha) {
+  /*
+    When to send to sinkholes:
+    - It was run by automator.
+    - When human requested, and sinkhole is enabled.
+    - When human requested, and copy to clipboard is disabled
+  */
+  if (!global_human_click
+    || (global_human_click && settings.sinkhole_on_manual_request)
+    || (global_human_click && !settings.captcha_code_clipboard)) {
+
+    send_to_sinkholes(global_captcha_url, captcha);
+  }
+}
+
 function onEvent(debuggeeId, message, params) {
   if (openedTabId !== debuggeeId.tabId || message !== "Network.responseReceived")
     return;
@@ -182,7 +197,32 @@ function onEvent(debuggeeId, message, params) {
         setTimeout(function() {
           console.log(new Date() + " :: Click!");
           chrome.tabs.executeScript(debuggeeId.tabId,
-            {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"});
+            {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"}, function() {
+              // Workaround for Chrome version 67
+
+              // TODO: Improve time on setTimout to be better than just 8500.
+
+              setTimeout(function() {
+                chrome.tabs.executeScript(debuggeeId.tabId,
+                  {code: 'document.getElementsByTagName("textarea")[0].value'}, function(result) {
+                    if (result.length > 0) {
+                      if (result[0].includes("03ACgFB9")) {
+                        validate_and_send_to_sinkholes(result[0]);
+
+                        if (settings.captcha_code_clipboard) {
+                          // TODO: Copy to clipboard isn't working yet.
+                          chrome.tabs.executeScript(debuggeeId.tabId,
+                            {file: "wa67_copy_captcha.js"}, function() {
+                              exit(debuggeeId, false);
+                            });
+                        } else {
+                          exit(debuggeeId, false);
+                        }
+                      }
+                    }
+                });
+              }, 8500);
+            });
         }, 3000);
       }, 1000);
 
@@ -215,19 +255,9 @@ function onEvent(debuggeeId, message, params) {
               chrome.storage.sync.set({'stats': stats});
             }
 
-            /*
-              When to send to sinkholes:
-              - It was run by automator.
-              - When human requested, and sinkhole is enabled.
-              - When human requested, and copy to clipboard is disabled
-            */
-            if (!global_human_click
-              || (global_human_click && settings.sinkhole_on_manual_request)
-              || (global_human_click && !settings.captcha_code_clipboard)) {
+            validate_and_send_to_sinkholes(captcha);
 
-              send_to_sinkholes(global_captcha_url, captcha);
-            }
-
+            // TODO: Remove this code, and replace for the textarea copy
             if (settings.captcha_code_clipboard) {
               chrome.tabs.executeScript(debuggeeId.tabId,
                 {code: "var captcha = \"" + captcha + "\";"}, function() {
