@@ -99,8 +99,8 @@ function save_options() {
  * Add Captcha URL properties (URL, Site Key)
  */
 function add_captcha_url() {
-  var insert_url = document.getElementById("insert_url").value;
-  var site_key = document.getElementById("site_key").value;
+  var insert_url = document.getElementById("insert_url").value.trim();
+  var site_key = document.getElementById("site_key").value.trim();
 
   // Clean up values
   document.getElementById("insert_url").value = '';
@@ -125,7 +125,7 @@ function add_captcha_url() {
  * Add sinkhole URL
  */
 function add_sinkhole_url() {
-  var url = document.getElementById("sinkhole_insert_url").value;
+  var url = document.getElementById("sinkhole_insert_url").value.trim();
 
   // Clean up values
   document.getElementById("sinkhole_insert_url").value = '';

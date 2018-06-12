@@ -6,6 +6,9 @@ var openedTabId = null; // new tab ID
 var redirectToTabId = null; // active tab ID, before any action
 var settings, stats, guid;
 
+// Avoid duplicates on some edgecases
+var request_sent = false;
+
 // ReCaptcha URL
 var global_captcha_url;
 
@@ -31,9 +34,13 @@ function guid() {
 }
 
 function send_to_sinkholes(referrer_url, captcha) {
-  settings.sinkholes_urls.forEach(function(sinkhole_url) {
-    create_request(sinkhole_url, captcha, referrer_url);
-  });
+  if (!request_sent) {
+    settings.sinkholes_urls.forEach(function(sinkhole_url) {
+      create_request(sinkhole_url, captcha, referrer_url);
+    });
+
+    request_sent = true;
+  }
 }
 
 /**
@@ -66,14 +73,17 @@ chrome.webRequest.onBeforeRequest.addListener(function(data) {
       || data.url.indexOf("://www.gstatic.com/recaptcha/") > -1
         || data.url.indexOf("://www.google.com/js/") > -1) {
 
+      console.log("Allow: " + data.url);
       return {cancel: false};
     }
 
     // Only affect URL inside the opened tab
     if (get_captch_url_by_url(data.url) !== false) {
+      console.log("Allow: " + data.url);
       return {cancel: false};
     }
 
+    console.log("Blocked: " + data.url);
     return {cancel: true};
   }
 },{'urls': ["*://*/*"]}, ["blocking"]);
@@ -81,13 +91,14 @@ chrome.webRequest.onBeforeRequest.addListener(function(data) {
 /**
  * Exit procedure, used in several places.
  */
-function exit(debuggeeId) {
-  chrome.debugger.sendCommand({tabId: debuggeeId.tabId}, "Network.disable");
-
-  // TODO: Check one time listenger, and don't change it!
+function exit(debuggeeId, on_removed) {
   chrome.debugger.onEvent.removeListener(onEvent);
-  chrome.debugger.detach(debuggeeId);
-  chrome.tabs.remove(debuggeeId.tabId);
+
+  if (!on_removed) {
+    chrome.debugger.sendCommand({tabId: debuggeeId.tabId}, "Network.disable");
+    chrome.debugger.detach(debuggeeId);
+    chrome.tabs.remove(debuggeeId.tabId);
+  }
 
   if (redirectToTabId != null) {
     chrome.tabs.update(redirectToTabId, {highlighted: true});
@@ -96,7 +107,15 @@ function exit(debuggeeId) {
   redirectToTabId = null;
   human_solve_interaction = false;
   global_captcha_url = null;
+  request_sent = false;
+  openedTabId = null;
 }
+
+chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
+  if (tabId == openedTabId) {
+    exit({tabId: tabId}, true);
+  }
+})
 
 /**
  * Clean https:// and https:// and the last slash from URL for better efficiency
@@ -139,7 +158,7 @@ function onEvent(debuggeeId, message, params) {
   if (openedTabId !== debuggeeId.tabId || message !== "Network.responseReceived")
     return;
 
-  var captcha_url = get_captch_url_by_url(params.response.url) ;
+  var captcha_url = get_captch_url_by_url(params.response.url);
 
   if (captcha_url !== false) {
     global_captcha_url = params.response.url;
@@ -159,7 +178,7 @@ function onEvent(debuggeeId, message, params) {
           console.log(new Date() + " :: Click!");
           chrome.tabs.executeScript(debuggeeId.tabId,
             {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"});
-        }, 3000)
+        }, 3000);
       }, 1000);
 
     // Don't like the 1000 ms waiting, but I'm having some issues loading replace_recaptcha script.
@@ -201,11 +220,11 @@ function onEvent(debuggeeId, message, params) {
                 {code: "var captcha = \"" + captcha + "\";"}, function() {
                   chrome.tabs.executeScript(debuggeeId.tabId,
                     {file: 'copy_to_clipboard.js'}, function(info) {
-                      exit(debuggeeId);
+                      exit(debuggeeId, false);
                   });
               });
             } else {
-              exit(debuggeeId);
+              exit(debuggeeId, false);
             }
           }
         }
@@ -226,9 +245,11 @@ function onEvent(debuggeeId, message, params) {
       human_solve_interaction = true;
 
       // Timeout after 55 seconds!
-      setTimeout(function() { exit(debuggeeId); }, 55000);
+      setTimeout(function() {
+        exit(debuggeeId, false);
+      }, 55000);
     } else {
-      exit(debuggeeId);
+      exit(debuggeeId, false);
     }
   }
 }
@@ -250,15 +271,21 @@ function context_menu_click(info, tab) {
  */
 function create_tab(url, is_human_click) {
   global_human_click = is_human_click;
-  var active = is_human_click && settings.new_tab_switch;
+  request_sent = false;
+  var is_active = is_human_click && settings.new_tab_switch;
 
-  chrome.tabs.create({ url: url, active: active }, function(tab) {
+  chrome.tabs.create({ url: url, active: is_active}, function(tab) {
     openedTabId = tab.id;
 
-    // Attach debugger on this new tab.
-    chrome.debugger.attach({tabId: tab.id}, "1.0", function() {
-      chrome.debugger.sendCommand({tabId: tab.id}, "Network.enable");
-      chrome.debugger.onEvent.addListener(onEvent);
+    // Reload is used here to solve a race condition on multi-core CPUs.
+    // The URL is requested before all listeners are setup. So we reload to
+    // request its initial information again.
+    chrome.tabs.reload(openedTabId, {bypassCache: true}, function() {
+      // Attach debugger on this new tab.
+      chrome.debugger.attach({tabId: tab.id}, "1.0", function() {
+        chrome.debugger.sendCommand({tabId: tab.id}, "Network.enable");
+        chrome.debugger.onEvent.addListener(onEvent);
+      });
     });
   });
 }

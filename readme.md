@@ -15,6 +15,20 @@ This is **NOT**:
 * Alert *Human* to solve the challenge.
 * Statistics about captchas solved / not solved.
 
+## Recommendation
+
+For better stealth, the hosts file of the computer that is running this extension can be modified to point to localhost.
+This will not impact extraction for **gCaptchaCode**, and improve stealth.
+
+Location for Windows: `c:\Windows\System32\Drivers\etc\hosts`
+Location for Linux/OSX: `/etc/hosts`
+
+Example:
+
+```
+127.0.0.1   sitewithcaptcha.com
+```
+
 ## How it works
 
 This extension automates a series of functions on the Chrome browser to extract **gCaptchaCode**. By installing this extension in several computers, **gCaptchaCodes** can harvest from different computers (like a *botnet*, but please use with the *Human* consent).
@@ -23,7 +37,7 @@ This will try to solve the ReCaptcha, replacing the HTML in the page by just min
 
 ## What is gCaptchaCode ?
 
-This is a string with different sizes (442 or 485 characters, but might be other lengths), starting with **03ACgFB9**. This string can sent to the website that implement Google ReCaptcha to access to the content protected by it.
+This is a string with different sizes (442 or 485 characters, but might be other lengths), starting with **03ACgFB9**. This string can sent to the website that implement Google ReCaptcha to access the content protected by it.
 
 It expires in 120 seconds, so be aware that to use it as soon as possible.
 
@@ -37,7 +51,7 @@ If an interface is developed to insert **gCaptchaCode**, this extension ca be us
 
 ### Switch to a new tab to view ReCaptcha to be solved more quickly (Human only)
 
-When the *Human* request to solve a ReCaptcha, a new tab opens with the URL of the website in order to extract the *gCaptchaCode*. This new tab can be an **active tab** or a **background tab**. Don't know why, but normally code run on the background tabs takes longer to solve (~50 seconds vs ~7 seconds).
+When the *Human* request to solve a ReCaptcha, a new tab opens with the website URL in order to extract the *gCaptchaCode*. This new tab can be an **active tab** or a **background tab**. Don't know why, but normally code run on the background tabs takes longer to solve (~50 seconds vs ~7 seconds).
 
 ### Alert Human to solve captcha, if ReCaptcha ask to solve it?
 
@@ -53,7 +67,7 @@ If **enabled**, the *Human* will not have control over **gCaptchaCode**.
 
 ### Captcha URL
 
-Captcha URLs is a list of websites to obtain **gCaptchaCode**. The information need for this setup is the main URL of the website (https://www.example.com) and the **site key** code available on ReCaptcha code in HTML.
+Captcha URLs is a list of websites to obtain **gCaptchaCode**. The information need for this setup is the main website URL (https://www.example.com) and the **site key** code available on ReCaptcha code in HTML.
 
 ### Sinkhole
 
