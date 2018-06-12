@@ -15,13 +15,20 @@ This is **NOT**:
 * Alert *Human* to solve the challenge.
 * Statistics about captchas solved / not solved.
 
+## Known issues
+
+On some versions of Google Chrome (mainly 67), the `onEvent` function stops receiving requests for no reason. This hurts the behaviour of the extension, because no longer catch the `userverify` or `payload` endpoints of ReCaptcha.
+
+Until this is solved, the solution is to use a different version, like [Google Chrome Canary](https://www.google.com/chrome/browser/canary.html), unfortunately not available for Linux. For Linux you can try to check [Chromium](https://www.chromium.org/getting-involved/dev-channel).
+
 ## Recommendation
 
 For better stealth, the hosts file of the computer that is running this extension can be modified to point to localhost.
 This will not impact extraction for **gCaptchaCode**, and improve stealth.
 
-Location for Windows: `c:\Windows\System32\Drivers\etc\hosts`
-Location for Linux/OSX: `/etc/hosts`
+Location for:
+* Windows: `c:\Windows\System32\Drivers\etc\hosts`
+* Linux/OSX: `/etc/hosts`
 
 Example:
 
