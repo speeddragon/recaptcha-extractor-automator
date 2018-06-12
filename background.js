@@ -19,7 +19,7 @@ var end_resolve_time = null;
 // Automator
 var last_request_timestamp = Date.now() - 24*60*60*1000; // Set timestamp 24h before
 var global_human_click, automator_url_iterator = 0;
-var human_solve_interaction = false;
+var human_solve_interaction = false, challenge_requested = false;
 
 /**
  * Generate an unique identifier
@@ -92,23 +92,28 @@ chrome.webRequest.onBeforeRequest.addListener(function(data) {
  * Exit procedure, used in several places.
  */
 function exit(debuggeeId, on_removed) {
-  chrome.debugger.onEvent.removeListener(onEvent);
+  if (openedTabId != null) {
+    if (!on_removed) {
+      chrome.debugger.sendCommand({tabId: debuggeeId.tabId}, "Network.disable", {}, function() {
+        chrome.debugger.detach(debuggeeId);
+        chrome.tabs.remove(debuggeeId.tabId);
+      });
+    }
 
-  if (!on_removed) {
-    chrome.debugger.sendCommand({tabId: debuggeeId.tabId}, "Network.disable");
-    chrome.debugger.detach(debuggeeId);
-    chrome.tabs.remove(debuggeeId.tabId);
+    chrome.debugger.onEvent.removeListener(onEvent);
+
+    if (redirectToTabId != null) {
+      chrome.tabs.update(redirectToTabId, {highlighted: true});
+      redirectToTabId = null;
+    }
+
+    // Reset values
+    human_solve_interaction = false;
+    global_captcha_url = null;
+    request_sent = false;
+    openedTabId = null;
+    challenge_requested = false;
   }
-
-  if (redirectToTabId != null) {
-    chrome.tabs.update(redirectToTabId, {highlighted: true});
-  }
-
-  redirectToTabId = null;
-  human_solve_interaction = false;
-  global_captcha_url = null;
-  request_sent = false;
-  openedTabId = null;
 }
 
 chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
@@ -210,8 +215,16 @@ function onEvent(debuggeeId, message, params) {
               chrome.storage.sync.set({'stats': stats});
             }
 
-            // Send token to server!
-            if (!global_human_click || (global_human_click && settings.sinkhole_on_manual_request)) {
+            /*
+              When to send to sinkholes:
+              - It was run by automator.
+              - When human requested, and sinkhole is enabled.
+              - When human requested, and copy to clipboard is disabled
+            */
+            if (!global_human_click
+              || (global_human_click && settings.sinkhole_on_manual_request)
+              || (global_human_click && !settings.captcha_code_clipboard)) {
+
               send_to_sinkholes(global_captcha_url, captcha);
             }
 
@@ -236,12 +249,20 @@ function onEvent(debuggeeId, message, params) {
     console.log(new Date() + " :: Time Diff: " + time_diff + "ms!");
     console.log("Captcha not solved!, will try again some time later!");
 
-    stats.requests_with_challange = stats.requests_with_challange + 1;
-    stats.solved_in_a_row = 0;
-    chrome.storage.sync.set({'stats': stats});
+    // Do not increase for multiple challenges
+    if (!challenge_requested) {
+      stats.requests_with_challange = stats.requests_with_challange + 1;
+      stats.solved_in_a_row = 0;
+      chrome.storage.sync.set({'stats': stats});
 
-    if (settings.alert_user_solve_captcha) {
-      alert("Human, please solve this challenge!");
+      challenge_requested = true;
+    }
+
+    if (global_human_click || (!global_human_click && settings.alert_user_solve_captcha)) {
+      // Only show if it is an automated request
+      if (!global_human_click) {
+        alert("Human, please solve this challenge!");
+      }
       human_solve_interaction = true;
 
       // Timeout after 55 seconds!
