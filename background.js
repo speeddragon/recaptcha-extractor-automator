@@ -160,6 +160,14 @@ function get_captch_url_by_url(url) {
 }
 
 function validate_and_send_to_sinkholes(captcha) {
+  console.log("gCaptchaResponse: " + captcha);
+  if (!human_solve_interaction) {
+    stats.requests_without_challange = stats.requests_without_challange + 1;
+    stats.solved_in_a_row = stats.solved_in_a_row + 1;
+
+    chrome.storage.sync.set({'stats': stats});
+  }
+
   /*
     When to send to sinkholes:
     - It was run by automator.
@@ -172,6 +180,22 @@ function validate_and_send_to_sinkholes(captcha) {
 
     send_to_sinkholes(global_captcha_url, captcha);
   }
+}
+
+/**
+ * Copy a value to the clipboard
+ *
+ * @var debuggeeId object Debugger information
+ * @var $value string value
+ */
+function copy_to_clipboard(debuggeeId, value) {
+  chrome.tabs.executeScript(debuggeeId.tabId,
+    {code: "var captcha = \"" + value + "\";"}, function() {
+      chrome.tabs.executeScript(debuggeeId.tabId,
+        {file: 'copy_to_clipboard.js'}, function(info) {
+          exit(debuggeeId, false);
+      });
+  });
 }
 
 function onEvent(debuggeeId, message, params) {
@@ -201,7 +225,6 @@ function onEvent(debuggeeId, message, params) {
               // Workaround for Chrome version 67
 
               // TODO: Improve time on setTimout to be better than just 8500.
-
               setTimeout(function() {
                 chrome.tabs.executeScript(debuggeeId.tabId,
                   {code: 'document.getElementsByTagName("textarea")[0].value'}, function(result) {
@@ -210,11 +233,8 @@ function onEvent(debuggeeId, message, params) {
                         validate_and_send_to_sinkholes(result[0]);
 
                         if (settings.captcha_code_clipboard) {
-                          // TODO: Copy to clipboard isn't working yet.
-                          chrome.tabs.executeScript(debuggeeId.tabId,
-                            {file: "wa67_copy_captcha.js"}, function() {
-                              exit(debuggeeId, false);
-                            });
+                          // Copy to clipboard
+                          copy_to_clipboard(debuggeeId, result[0]);
                         } else {
                           exit(debuggeeId, false);
                         }
@@ -248,24 +268,10 @@ function onEvent(debuggeeId, message, params) {
             time_diff = Date.now() - start_resolve_time;
             console.log(new Date() + " :: Time Diff: " + time_diff + "ms!");
 
-            if (!human_solve_interaction) {
-              stats.requests_without_challange = stats.requests_without_challange + 1;
-              stats.solved_in_a_row = stats.solved_in_a_row + 1;
-
-              chrome.storage.sync.set({'stats': stats});
-            }
-
             validate_and_send_to_sinkholes(captcha);
 
-            // TODO: Remove this code, and replace for the textarea copy
             if (settings.captcha_code_clipboard) {
-              chrome.tabs.executeScript(debuggeeId.tabId,
-                {code: "var captcha = \"" + captcha + "\";"}, function() {
-                  chrome.tabs.executeScript(debuggeeId.tabId,
-                    {file: 'copy_to_clipboard.js'}, function(info) {
-                      exit(debuggeeId, false);
-                  });
-              });
+              copy_to_clipboard(debuggeeId, captcha);
             } else {
               exit(debuggeeId, false);
             }
