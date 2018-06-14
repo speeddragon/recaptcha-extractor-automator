@@ -2,14 +2,25 @@
  * Running on background
  */
 
-var openedTabId = null; // new tab ID
-var redirectToTabId = null; // active tab ID, before any action
-var settings, stats, guid;
+/**
+ * New tab that containt the new windows with ReCaptcha
+ * @var openedTabId integer
+ */
+var openedTabId = null;
 
-// Avoid duplicates on some edgecases
+/**
+ * Original windows that Human was
+ * @var redirectToTabId integer
+ */
+var redirectToTabId = null;
+
+var settings, stats, guid;
+var global_wa67_iterator = 0;
+
+// Avoid duplicates on some edge cases
 var request_sent = false;
 
-// ReCaptcha URL
+// ReCaptcha URL (aka Referrer URL)
 var global_captcha_url;
 
 // Benchmark (time)
@@ -33,6 +44,40 @@ function guid() {
   return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 }
 
+/**
+ * Validate and send to the sinkholes
+ * @var captcha string Captcha code
+ */
+function validate_and_send_to_sinkholes(captcha) {
+  console.log(" :: gCaptchaResponse [" + captcha + "]");
+
+  // Update Stats
+  if (!human_solve_interaction) {
+    stats.requests_without_challange = stats.requests_without_challange + 1;
+    stats.solved_in_a_row = stats.solved_in_a_row + 1;
+
+    chrome.storage.sync.set({'stats': stats});
+  }
+
+  /*
+    When to send to sinkholes:
+    - It was run by automator.
+    - When human requested, and sinkhole is enabled.
+    - When human requested, and copy to clipboard is disabled
+  */
+  if (!global_human_click
+    || (global_human_click && settings.sinkhole_on_manual_request)
+    || (global_human_click && !settings.captcha_code_clipboard)) {
+
+    send_to_sinkholes(global_captcha_url, captcha);
+  }
+}
+
+/**
+ * Send information to Sinkhole
+ * @var referrer_url string URL where captcha can be used on
+ * @var captcha string Captcha Code
+ */
 function send_to_sinkholes(referrer_url, captcha) {
   if (!request_sent) {
     settings.sinkholes_urls.forEach(function(sinkhole_url) {
@@ -73,6 +118,10 @@ chrome.webRequest.onBeforeRequest.addListener(function(data) {
       || data.url.indexOf("://www.gstatic.com/recaptcha/") > -1
         || data.url.indexOf("://www.google.com/js/") > -1) {
 
+      if (data.url.indexOf("https://www.google.com/recaptcha/api2/payload?c=") > -1) {
+        challenge_request_procedure({tabId: openedTabId});
+      }
+
       console.log("Allow: " + data.url);
       return {cancel: false};
     }
@@ -88,39 +137,56 @@ chrome.webRequest.onBeforeRequest.addListener(function(data) {
   }
 },{'urls': ["*://*/*"]}, ["blocking"]);
 
+chrome.webRequest.onCompleted.addListener(function(details) {
+  if (openedTabId !== details.tabId)
+    return;
+
+  var captcha_url = get_captch_url_by_url(details.url);
+
+  if (captcha_url !== false) {
+    // Replace HTML to only contain ReCaptcha, and click on it
+    replace_html_and_click(captcha_url, details.url, details.tabId);
+  } else if (details.url.indexOf("https://www.google.com/recaptcha/api2/userverify?k=") > -1) {
+    // Request BODY of captcha successful request
+    //request_captcha_body({tabId: details.tabId}, details.requestId);
+  }
+},{'urls': ["*://*/*"]}, ["responseHeaders"]);
+
 /**
- * Exit procedure, used in several places.
+ * Replace HTML and Click on ReCaptcha
+ *
+ * @var captcha_url object {insert_url: ..., site_key: ...}
+ * @var url string URL
+ * @var tabId integer Tab ID
  */
-function exit(debuggeeId, on_removed) {
-  if (openedTabId != null) {
-    if (!on_removed) {
-      chrome.debugger.sendCommand({tabId: debuggeeId.tabId}, "Network.disable", {}, function() {
-        chrome.debugger.detach(debuggeeId);
-        chrome.tabs.remove(debuggeeId.tabId);
-      });
-    }
+function replace_html_and_click(captcha_url, url, tabId) {
+  global_captcha_url = url;
 
-    chrome.debugger.onEvent.removeListener(onEvent);
+  setTimeout(function() {
+    console.log(new Date() + " :: Replace HTML!");
+    chrome.tabs.executeScript(tabId,
+      {code: "var site_key = \"" + captcha_url.site_key + "\";" },
+        function() {
+          chrome.tabs.executeScript(tabId,
+            {runAt: "document_end", file: "replace_recaptcha.js"});
+    });
 
-    if (redirectToTabId != null) {
-      chrome.tabs.update(redirectToTabId, {highlighted: true});
-      redirectToTabId = null;
-    }
+    start_resolve_time = Date.now();
 
-    // Reset values
-    human_solve_interaction = false;
-    global_captcha_url = null;
-    request_sent = false;
-    openedTabId = null;
-    challenge_requested = false;
-  }
+    setTimeout(function() {
+      console.log(new Date() + " :: Click!");
+      chrome.tabs.executeScript(tabId,
+        {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"}, function() {
+          // Workaround for Chrome version 67
+
+          // Run every 1000 ms to check if is solved
+          setTimeout(function() {
+            check_solved_workaround({tabId: tabId});
+          }, 1000);
+        });
+    }, 2000);
+  }, 1000);
 }
-
-chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
-  if (tabId == openedTabId) {
-    exit({tabId: tabId}, true);
-  }
-})
 
 /**
  * Clean https:// and https:// and the last slash from URL for better efficiency
@@ -159,29 +225,6 @@ function get_captch_url_by_url(url) {
   return false;
 }
 
-function validate_and_send_to_sinkholes(captcha) {
-  console.log("gCaptchaResponse: " + captcha);
-  if (!human_solve_interaction) {
-    stats.requests_without_challange = stats.requests_without_challange + 1;
-    stats.solved_in_a_row = stats.solved_in_a_row + 1;
-
-    chrome.storage.sync.set({'stats': stats});
-  }
-
-  /*
-    When to send to sinkholes:
-    - It was run by automator.
-    - When human requested, and sinkhole is enabled.
-    - When human requested, and copy to clipboard is disabled
-  */
-  if (!global_human_click
-    || (global_human_click && settings.sinkhole_on_manual_request)
-    || (global_human_click && !settings.captcha_code_clipboard)) {
-
-    send_to_sinkholes(global_captcha_url, captcha);
-  }
-}
-
 /**
  * Copy a value to the clipboard
  *
@@ -198,117 +241,147 @@ function copy_to_clipboard(debuggeeId, value) {
   });
 }
 
+/**
+ * Altenative way to check for solved captcha when onEvent doesn't work.
+ *
+ * Mainly cause for Chrome 67 usage.
+ *
+ * @var $debuggeeId object
+ */
+function check_solved_workaround(debuggeeId) {
+  if (openedTabId != null) {
+    chrome.tabs.executeScript(debuggeeId.tabId,
+      {code: 'document.getElementsByTagName("textarea")[0].value'}, function(result) {
+        if (Array.isArray(result) && result.length > 0 && result[0].includes("03ACgFB9")) {
+          console.log("WA67: CAPTCHA found.");
+          validate_and_send_to_sinkholes(result[0]);
+
+          if (global_human_click && settings.captcha_code_clipboard) {
+            // Copy to clipboard
+            copy_to_clipboard(debuggeeId, result[0]);
+          } else {
+            exit(debuggeeId, false);
+          }
+        } else if (global_wa67_iterator > 55){
+          console.log("WA67: CAPTCHA not found, exit.");
+          exit(debuggeeId, false);
+        } else {
+          console.log("WA67: CAPTCHA not found, try again in 1 second. | Iteration: " + global_wa67_iterator);
+          global_wa67_iterator++;
+
+          // Check again in 1000ms
+          setTimeout(function() {
+            check_solved_workaround(debuggeeId);
+          }, 1000);
+        }
+    });
+  }
+}
+
+/**
+ * Handle challange behaviour of the plugin
+ *
+ * @var debuggeeId object Debug Object
+ */
+function challenge_request_procedure(debuggeeId) {
+  // Do not increase for multiple challenges
+  if (!challenge_requested) {
+    stats.requests_with_challange = stats.requests_with_challange + 1;
+    stats.solved_in_a_row = 0;
+    chrome.storage.sync.set({'stats': stats});
+
+    challenge_requested = true;
+  }
+
+  if (global_human_click || (!global_human_click && settings.alert_user_solve_captcha)) {
+    // Only show if it is an automated request
+    if (!global_human_click || (global_human_click && !settings.new_tab_switch)) {
+      // Change tab on user to solve the challenge:
+      // * Automator request (background tab)
+      // * Human request with switch to a new tab disabled.
+      chrome.tabs.update(openedTabId, {highlighted: true});
+    }
+
+    human_solve_interaction = true;
+
+    // Timeout after 55 seconds!
+    setTimeout(function() {
+      exit(debuggeeId, false);
+    }, 55000);
+  } else {
+    exit(debuggeeId, false);
+  }
+}
+
+/**
+ * Capture requests and its body
+ */
 function onEvent(debuggeeId, message, params) {
   if (openedTabId !== debuggeeId.tabId || message !== "Network.responseReceived")
     return;
 
+  console.log("onEvent :: [" + params.response.url + "]");
+
   var captcha_url = get_captch_url_by_url(params.response.url);
 
   if (captcha_url !== false) {
-    global_captcha_url = params.response.url;
-
-    setTimeout(function() {
-        console.log(new Date() + " :: Replace HTML!");
-        chrome.tabs.executeScript(debuggeeId.tabId,
-          {code: "var site_key = \"" + captcha_url.site_key + "\";" },
-            function() {
-              chrome.tabs.executeScript(debuggeeId.tabId,
-                {runAt: "document_end", file: "replace_recaptcha.js"});
-        });
-
-        start_resolve_time = Date.now();
-
-        setTimeout(function() {
-          console.log(new Date() + " :: Click!");
-          chrome.tabs.executeScript(debuggeeId.tabId,
-            {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"}, function() {
-              // Workaround for Chrome version 67
-
-              // TODO: Improve time on setTimout to be better than just 8500.
-              setTimeout(function() {
-                chrome.tabs.executeScript(debuggeeId.tabId,
-                  {code: 'document.getElementsByTagName("textarea")[0].value'}, function(result) {
-                    if (result.length > 0) {
-                      if (result[0].includes("03ACgFB9")) {
-                        validate_and_send_to_sinkholes(result[0]);
-
-                        if (settings.captcha_code_clipboard) {
-                          // Copy to clipboard
-                          copy_to_clipboard(debuggeeId, result[0]);
-                        } else {
-                          exit(debuggeeId, false);
-                        }
-                      }
-                    }
-                });
-              }, 8500);
-            });
-        }, 3000);
-      }, 1000);
-
-    // Don't like the 1000 ms waiting, but I'm having some issues loading replace_recaptcha script.
+    // NOTE: The other call to replace_html_and_click is quicker, avoid
+    // duplication for now.
+    
+    //replace_html_and_click(captcha_url, params.response.url, debuggeeId.tabId);
   }
 
   if (params.response.url.includes("https://www.google.com/recaptcha/api2/userverify?k=")) {
-    // Valid
-    chrome.debugger.sendCommand({
-        tabId: debuggeeId.tabId
-    }, "Network.getResponseBody", {
-        "requestId": params.requestId
-    }, function(response) {
-        // you get the response body here!
-        // you can close the debugger tips by:
-        console.log(new Date() + " :: Processing CAPTCHA ...");
-        var captcha = response.body.split("uvresp\",\"");
-        if (captcha.length == 2) {
-          captcha = captcha[1].split("\",");
-          if (captcha.length == 2) {
-            captcha = captcha[0];
-
-            time_diff = Date.now() - start_resolve_time;
-            console.log(new Date() + " :: Time Diff: " + time_diff + "ms!");
-
-            validate_and_send_to_sinkholes(captcha);
-
-            if (settings.captcha_code_clipboard) {
-              copy_to_clipboard(debuggeeId, captcha);
-            } else {
-              exit(debuggeeId, false);
-            }
-          }
-        }
-    });
+    // Request Body
+    request_captcha_body(debuggeeId, params.requestId);
   } else if (params.response.url.includes("https://www.google.com/recaptcha/api2/payload?c=")) {
     // CAPTCHA not solved
+    // NOTE: This code isn't run on Chrome 67
 
     time_diff = Date.now() - start_resolve_time;
     console.log(new Date() + " :: Time Diff: " + time_diff + "ms!");
-    console.log("Captcha not solved!, will try again some time later!");
+    console.log("Captcha not solved!");
 
-    // Do not increase for multiple challenges
-    if (!challenge_requested) {
-      stats.requests_with_challange = stats.requests_with_challange + 1;
-      stats.solved_in_a_row = 0;
-      chrome.storage.sync.set({'stats': stats});
-
-      challenge_requested = true;
-    }
-
-    if (global_human_click || (!global_human_click && settings.alert_user_solve_captcha)) {
-      // Only show if it is an automated request
-      if (!global_human_click) {
-        alert("Human, please solve this challenge!");
-      }
-      human_solve_interaction = true;
-
-      // Timeout after 55 seconds!
-      setTimeout(function() {
-        exit(debuggeeId, false);
-      }, 55000);
-    } else {
-      exit(debuggeeId, false);
-    }
+    challenge_request_procedure(debuggeeId);
   }
+}
+
+/**
+ * Normal way to fetch CAPTCHA code, by reading the body response
+ *
+ * @var debuggeeId object
+ * @var requestId integer
+ */
+function request_captcha_body(debuggeeId, requestId) {
+  chrome.debugger.sendCommand({
+      tabId: debuggeeId.tabId
+  }, "Network.getResponseBody", {
+      "requestId": requestId
+  }, function(response) {
+    if (response !== undefined) {
+      // you get the response body here!
+      // you can close the debugger tips by:
+      console.log(new Date() + " :: Processing CAPTCHA ...");
+      var captcha = response.body.split("uvresp\",\"");
+      if (captcha.length == 2) {
+        captcha = captcha[1].split("\",");
+        if (captcha.length == 2) {
+          captcha = captcha[0];
+
+          time_diff = Date.now() - start_resolve_time;
+          console.log(new Date() + " :: Time Diff: " + time_diff + "ms!");
+
+          validate_and_send_to_sinkholes(captcha);
+
+          if (global_human_click && settings.captcha_code_clipboard) {
+            copy_to_clipboard(debuggeeId, captcha);
+          } else {
+            exit(debuggeeId, false);
+          }
+        }
+      }
+    }
+  });
 }
 
 /**
@@ -337,6 +410,7 @@ function create_tab(url, is_human_click) {
     // Reload is used here to solve a race condition on multi-core CPUs.
     // The URL is requested before all listeners are setup. So we reload to
     // request its initial information again.
+
     chrome.tabs.reload(openedTabId, {bypassCache: true}, function() {
       // Attach debugger on this new tab.
       chrome.debugger.attach({tabId: tab.id}, "1.0", function() {
@@ -347,8 +421,44 @@ function create_tab(url, is_human_click) {
   });
 }
 
+/**
+ * Exit procedure, used in several places.
+ */
+function exit(debuggeeId, on_removed) {
+  if (openedTabId != null) {
+    console.log(" :: Exit on TabId [" + debuggeeId.tabId + "]")
+    if (!on_removed) {
+      chrome.debugger.sendCommand({tabId: debuggeeId.tabId}, "Network.disable", {}, function() {
+        chrome.debugger.detach(debuggeeId);
+        chrome.tabs.remove(debuggeeId.tabId);
+      });
+    }
+
+    chrome.debugger.onEvent.removeListener(onEvent);
+
+    if (redirectToTabId != null) {
+      chrome.tabs.update(redirectToTabId, {highlighted: true});
+      redirectToTabId = null;
+    }
+
+    // Reset values
+    human_solve_interaction = false;
+    global_captcha_url = null;
+    request_sent = false;
+    openedTabId = null;
+    challenge_requested = false;
+    global_wa67_iterator = 0;
+  }
+}
+
+chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
+  if (tabId == openedTabId) {
+    exit({tabId: tabId}, true);
+  }
+});
+
 chrome.browserAction.onClicked.addListener(function(activeTab){
-  // Open Options
+  // On Toolbar click, open options
   chrome.tabs.create({ url: "chrome-extension://" + chrome.runtime.id + "/options.html"});
 });
 
@@ -430,7 +540,7 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
 function automate() {
   if (settings.automator_switch) {
     var time_diff = (Date.now() - last_request_timestamp) / 1000;
-    console.log(new Date() + " :: Automator - Enabled! | Time Diff: [" + time_diff + "] ");
+    console.log(new Date() + " :: Automator - Enabled! | Time Diff: [" + Math.round(time_diff / 60) + "m] ");
 
     if (settings.captchas_urls.length > 0 && time_diff > settings.request_interval * 60) {
       // Make a request

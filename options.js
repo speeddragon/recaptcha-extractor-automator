@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('sinkhole_add_url')
     .addEventListener("click", add_sinkhole_url);
 
+  document.getElementById('read_settings_file').addEventListener("click", load_from_file);
+
   // Update normal settings
   document.getElementById('request_interval')
     .addEventListener("change", update_setting);
@@ -67,6 +69,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Load file JSON with setting
+ */
+function load_from_file() {
+  var file = document.getElementById("settings_file").files[0];
+  var reader = new FileReader();
+  reader.onload = function(e){
+    settings = JSON.parse(e.target.result);
+    console.log(" :: Loading settings file");
+    console.log(settings);
+  }
+  reader.readAsText(file);
+}
+
+function update_download_file() {
+  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
+  var dlAnchorElem = document.getElementById('save_settings_file');
+  dlAnchorElem.setAttribute("href", dataStr);
+  dlAnchorElem.setAttribute("download", "settings.json");
+}
+
+/**
  * Update setting
  */
 function update_setting(item) {
@@ -99,6 +122,7 @@ function save_options() {
  * Add Captcha URL properties (URL, Site Key)
  */
 function add_captcha_url() {
+  // TODO: Apply string validation to avoid XSS
   var insert_url = document.getElementById("insert_url").value.trim();
   var site_key = document.getElementById("site_key").value.trim();
 
@@ -161,6 +185,7 @@ function delete_sinkhole_url(item) {
   sinkholes_urls_html.removeChild(item.path[2]);
 }
 
+// TODO: Make this generic to be used by LOAD SETTINGS FILE
 function add_captcha_url_to_table(captcha_url) {
   var captchas_urls_html = document.getElementById('captchas_urls');
 
@@ -188,6 +213,7 @@ function add_captcha_url_to_table(captcha_url) {
   captchas_urls_html.appendChild(tr);
 }
 
+// TODO: Make this generic to be used by LOAD SETTINGS FILE
 function add_sinkhole_url_to_table(sinkhole_url) {
   var sinkholes_urls_html = document.getElementById('sinkholes_urls');
 
@@ -216,8 +242,23 @@ function show_stats_in_html() {
   document.getElementById('requests_with_challange').innerHTML =
     stats.requests_with_challange;
   document.getElementById('solved_in_a_row').innerHTML =
-  stats.solved_in_a_row;
+    stats.solved_in_a_row;
+
+  // TODO: Add automator last run date
 }
+
+/**
+ * Sync stats on changes
+ */
+chrome.storage.onChanged.addListener(function (changes, areaName) {
+  if (changes.stats !== undefined) {
+    stats = changes.stats.newValue;
+
+    // Create context
+    show_stats_in_html();
+  }
+});
+
 
 // Load Settings
 chrome.storage.sync.get(['settings', 'stats'], function(items) {
@@ -261,5 +302,7 @@ chrome.storage.sync.get(['settings', 'stats'], function(items) {
     // Request every
     document.getElementById('request_interval').value =
       items.settings.request_interval;
+
+    update_download_file();
   }
 });

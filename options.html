@@ -1,6 +1,15 @@
 <html>
   <head>
     <style>
+    a:link, a:active, a:hover, a:visited {
+      color: black;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color:blue;
+    }
     code {
       padding: 20px;
       background: #f1f1f1;
@@ -75,6 +84,20 @@
       list-style: none;
     }
 
+    input[type="file"] {
+      display: none;
+    }
+    .custom-file-upload {
+      padding: 6px 16px;
+      border-radius: 0px;
+      background: #f3f3f3;
+      width: 80px;
+      border: 0px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
     #captchas_urls input[type="text"] {
       width: 100%;
       padding: 6px;
@@ -115,20 +138,28 @@
     </div>
 
     <div>
+      <h2>Save / Load settings from file</h2>
+      <div>You can download your settings <a id="save_settings_file">here</a>.</div>
+      <div style="margin-top: 20px;">
+        <label for="settings_file" class="custom-file-upload">Select file</label>
+        <input id="settings_file" type="file"/>
+        <button id="read_settings_file">Load</button>
+      </div>
+
       <h2>General</h2>
 
       <ul>
         <li>
           <input type="checkbox" id="captcha_code_clipboard" />
-          <label>Copy <i>gCaptchaCode</i> to clipboard</label>
+          <label>Copy <i>gCaptchaCode</i> to clipboard on <i>Human</i> interaction.</label>
         </li>
         <li>
           <input type="checkbox" id="new_tab_switch" />
-          <label>Switch to a new tab to view ReCaptcha to be solved more quickly (<i>Human</i> only)</label>
+          <label>Switch to a new tab to view ReCaptcha to be solved more quickly (<i>Human</i> only).</label>
         </li>
         <li>
           <input type="checkbox" id="alert_user_solve_captcha" />
-          <label>Alert <i>Human</i> to solve captcha, if ReCaptcha ask to solve it?</label>
+          <label>Alert <i>Human</i> to solve captcha, if ReCaptcha ask to solve it? (<i>Automator</i> only).</label>
         </li>
         <li>
           <input type="checkbox" id="sinkhole_on_manual_request" />
