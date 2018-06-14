@@ -21,6 +21,10 @@ You can find it in [Chrome Web Store](https://chrome.google.com/webstore/detail/
 
 On some versions of Google Chrome (mainly 67), the `onEvent` function stops receiving requests for no reason. This hurts the behaviour of the extension, because no longer catch the `userverify` or `payload` endpoints of ReCaptcha.
 
+**This is currently solved.** 
+
+Without the new code, a new versions is needed in order to work.
+
 Until this is solved, the solution is to use a different version, like [Google Chrome Canary](https://www.google.com/chrome/browser/canary.html), unfortunately not available for Linux. For Linux you can try to check [Chromium](https://www.chromium.org/getting-involved/dev-channel).
 
 ## Recommendation
