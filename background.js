@@ -147,8 +147,12 @@ chrome.webRequest.onCompleted.addListener(function(details) {
     // Replace HTML to only contain ReCaptcha, and click on it
     replace_html_and_click(captcha_url, details.url, details.tabId);
   } else if (details.url.indexOf("https://www.google.com/recaptcha/api2/userverify?k=") > -1) {
-    // Request BODY of captcha successful request
+    // Request BODY of captcha successful request (NOT WORKING)
     //request_captcha_body({tabId: details.tabId}, details.requestId);
+  } else if (details.url.includes("https://www.google.com/recaptcha/api2/bframe")) {
+    // This alternative to CLICK works better.
+    console.log(new Date() + " :: Click! (Alternative)");
+    perform_click(details.tabId);
   }
 },{'urls': ["*://*/*"]}, ["responseHeaders"]);
 
@@ -173,19 +177,29 @@ function replace_html_and_click(captcha_url, url, tabId) {
 
     start_resolve_time = Date.now();
 
-    setTimeout(function() {
-      console.log(new Date() + " :: Click!");
-      chrome.tabs.executeScript(tabId,
-        {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"}, function() {
-          // Workaround for Chrome version 67
-
-          // Run every 1000 ms to check if is solved
-          setTimeout(function() {
-            check_solved_workaround({tabId: tabId});
-          }, 1000);
-        });
-    }, 2000);
+    console.log(new Date() + " :: Click!");
+    perform_click(tabId);
   }, 1000);
+}
+
+/**
+ * Perform click action on checkbox recaptcha
+ * @var $tabId string Tab ID
+ */
+function perform_click(tabId) {
+  setTimeout(function() {
+    chrome.tabs.executeScript(tabId,
+      {allFrames: true, runAt: "document_end", file: "recaptcha_click.js"}, function() {
+        // Workaround for Chrome version 67
+
+        // Run every 1000 ms to check if is solved
+        setTimeout(function() {
+          if (global_wa67_iterator == 0) {
+            check_solved_workaround({tabId: tabId});
+          }
+        }, 1000);
+      });
+  }, 2000);
 }
 
 /**
@@ -236,6 +250,15 @@ function copy_to_clipboard(debuggeeId, value) {
     {code: "var captcha = \"" + value + "\";"}, function() {
       chrome.tabs.executeScript(debuggeeId.tabId,
         {file: 'copy_to_clipboard.js'}, function(info) {
+          chrome.notifications.create(
+            {
+              title: 'Copy to clipboard',
+              message: 'The gCaptchaCode was successfully copy into your clipboard.',
+              type: 'basic',
+              iconUrl: 'icon_128.png'
+            }
+          );
+
           exit(debuggeeId, false);
       });
   });
@@ -251,7 +274,7 @@ function copy_to_clipboard(debuggeeId, value) {
 function check_solved_workaround(debuggeeId) {
   if (openedTabId != null) {
     chrome.tabs.executeScript(debuggeeId.tabId,
-      {code: 'document.getElementsByTagName("textarea")[0].value'}, function(result) {
+      {code: 'document.getElementsByTagName("textarea")[0] === undefined ? \'\' : document.getElementsByTagName("textarea")[0].value'}, function(result) {
         if (Array.isArray(result) && result.length > 0 && result[0].includes("03ACgFB9")) {
           console.log("WA67: CAPTCHA found.");
           validate_and_send_to_sinkholes(result[0]);
@@ -327,7 +350,7 @@ function onEvent(debuggeeId, message, params) {
   if (captcha_url !== false) {
     // NOTE: The other call to replace_html_and_click is quicker, avoid
     // duplication for now.
-    
+
     //replace_html_and_click(captcha_url, params.response.url, debuggeeId.tabId);
   }
 

@@ -78,6 +78,8 @@ function load_from_file() {
     settings = JSON.parse(e.target.result);
     console.log(" :: Loading settings file");
     console.log(settings);
+
+    update_html_settings();
   }
   reader.readAsText(file);
 }
@@ -185,7 +187,6 @@ function delete_sinkhole_url(item) {
   sinkholes_urls_html.removeChild(item.path[2]);
 }
 
-// TODO: Make this generic to be used by LOAD SETTINGS FILE
 function add_captcha_url_to_table(captcha_url) {
   var captchas_urls_html = document.getElementById('captchas_urls');
 
@@ -213,7 +214,6 @@ function add_captcha_url_to_table(captcha_url) {
   captchas_urls_html.appendChild(tr);
 }
 
-// TODO: Make this generic to be used by LOAD SETTINGS FILE
 function add_sinkhole_url_to_table(sinkhole_url) {
   var sinkholes_urls_html = document.getElementById('sinkholes_urls');
 
@@ -259,6 +259,51 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
   }
 });
 
+function update_html_settings() {
+  document.getElementById('captcha_code_clipboard').checked =
+    settings.captcha_code_clipboard;
+  document.getElementById('new_tab_switch').checked =
+    settings.new_tab_switch;
+  document.getElementById('alert_user_solve_captcha').checked =
+    settings.alert_user_solve_captcha;
+  document.getElementById('sinkhole_on_manual_request').checked =
+    settings.sinkhole_on_manual_request;
+
+  document.getElementById('automator_switch').checked =
+    settings.automator_switch;
+
+  // Clean up
+  var html_captchas_urls = document.getElementById('captchas_urls');
+  while (html_captchas_urls.childElementCount > 1) {
+      html_captchas_urls.removeChild(html_captchas_urls.firstChild);
+  }
+
+  // Populate CAPTCHAs URLs
+  if (Array.isArray(settings.captchas_urls)) {
+    settings.captchas_urls.forEach(function(captcha_url) {
+      add_captcha_url_to_table(captcha_url);
+    });
+  }
+
+  // Clean up
+  var html_sinkholes_urls = document.getElementById('sinkholes_urls');
+  while (html_sinkholes_urls.childElementCount > 1) {
+      html_sinkholes_urls.removeChild(html_sinkholes_urls.firstChild);
+  }
+
+  // Populate Sinkholes URLs
+  if (Array.isArray(settings.sinkholes_urls)) {
+    settings.sinkholes_urls.forEach(function(sink_url) {
+      add_sinkhole_url_to_table(sink_url);
+    });
+  }
+
+  // Request every
+  document.getElementById('request_interval').value =
+    settings.request_interval;
+
+  update_download_file();
+}
 
 // Load Settings
 chrome.storage.sync.get(['settings', 'stats'], function(items) {
@@ -273,36 +318,6 @@ chrome.storage.sync.get(['settings', 'stats'], function(items) {
   } else {
     settings = items.settings;
 
-    document.getElementById('captcha_code_clipboard').checked =
-      items.settings.captcha_code_clipboard;
-    document.getElementById('new_tab_switch').checked =
-      items.settings.new_tab_switch;
-    document.getElementById('alert_user_solve_captcha').checked =
-      items.settings.alert_user_solve_captcha;
-    document.getElementById('sinkhole_on_manual_request').checked =
-      items.settings.sinkhole_on_manual_request;
-
-    document.getElementById('automator_switch').checked =
-      items.settings.automator_switch;
-
-    // Populate CAPTCHAs URLs
-    if (Array.isArray(items.settings.captchas_urls)) {
-      items.settings.captchas_urls.forEach(function(captcha_url) {
-        add_captcha_url_to_table(captcha_url);
-      });
-    }
-
-    // Populate Sinkholes URLs
-    if (Array.isArray(items.settings.sinkholes_urls)) {
-      items.settings.sinkholes_urls.forEach(function(sink_url) {
-        add_sinkhole_url_to_table(sink_url);
-      });
-    }
-
-    // Request every
-    document.getElementById('request_interval').value =
-      items.settings.request_interval;
-
-    update_download_file();
+    update_html_settings();
   }
 });

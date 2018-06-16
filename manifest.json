@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "ReCaptcha Extractor and Automator",
   "description": "Solve, extract and automate ReCaptcha data collection.",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "icons": {
     "128": "icon_128.png"
   },
@@ -16,7 +16,8 @@
     "clipboardRead",
     "clipboardWrite",
     "storage",
-    "contextMenus"
+    "contextMenus",
+    "notifications"
   ],
   "options_page": "options.html",
   "background": {
