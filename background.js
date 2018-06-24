@@ -275,7 +275,7 @@ function check_solved_workaround(debuggeeId) {
   if (openedTabId != null) {
     chrome.tabs.executeScript(debuggeeId.tabId,
       {code: 'document.getElementsByTagName("textarea")[0] === undefined ? \'\' : document.getElementsByTagName("textarea")[0].value'}, function(result) {
-        if (Array.isArray(result) && result.length > 0 && result[0].includes("03ACgFB9")) {
+        if (Array.isArray(result) && result.length > 0 && result[0].includes("03")) {
           console.log("WA67: CAPTCHA found.");
           validate_and_send_to_sinkholes(result[0]);
 
