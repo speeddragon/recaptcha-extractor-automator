@@ -446,6 +446,10 @@ function exit(debuggeeId, on_removed) {
   if (openedTabId != null) {
     console.log(" :: Exit on TabId [" + debuggeeId.tabId + "]");
 
+    if (!on_removed) {
+      chrome.tabs.remove(debuggeeId.tabId);
+    }
+
     if (redirectToTabId != null) {
       chrome.tabs.update(redirectToTabId, { highlighted: true });
       redirectToTabId = null;
