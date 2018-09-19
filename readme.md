@@ -48,7 +48,7 @@ This will try to solve the ReCaptcha, replacing the HTML in the page by just min
 
 ## What is gCaptchaCode ?
 
-This is a string with different sizes (442 or 485 characters, but might be other lengths), starting with **03ACgFB9**. This string can sent to the website that implement Google ReCaptcha to access the content protected by it.
+This is a string with different sizes (442 or 485 characters, but might be other lengths), starting with (**03ACgFB9**, **03AEMEkE**). This string can sent to the website that implement Google ReCaptcha to access the content protected by it.
 
 It expires in 120 seconds, so be aware that to use it as soon as possible.
 
