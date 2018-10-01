@@ -428,7 +428,15 @@ function create_tab(url, is_human_click) {
   request_sent = false;
   var is_active = is_human_click && settings.new_tab_switch;
 
-  chrome.tabs.create({ url: url, active: is_active }, function(tab) {
+  chrome.windows.create(
+    { url: url, width: 200, height: 200, focused: false, type: "panel" },
+    function(window) {
+      openedTabId = window.tabs[0].id;
+      chrome.tabs.reload(openedTabId, { bypassCache: true });
+    }
+  );
+
+  /*chrome.tabs.create({ url: url, active: is_active }, function(tab) {
     openedTabId = tab.id;
 
     // Reload is used here to solve a race condition on multi-core CPUs.
@@ -436,7 +444,7 @@ function create_tab(url, is_human_click) {
     // request its initial information again.
 
     chrome.tabs.reload(openedTabId, { bypassCache: true });
-  });
+  });*/
 }
 
 /**
