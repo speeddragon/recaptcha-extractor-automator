@@ -7,6 +7,7 @@
  * @var openedTabId integer
  */
 var openedTabId = null;
+var openedWindowId = null;
 
 /**
  * Original windows that Human was
@@ -149,24 +150,17 @@ chrome.webRequest.onBeforeRequest.addListener(
         data.url.indexOf("://www.gstatic.com/recaptcha/") > -1 ||
         data.url.indexOf("://www.google.com/js/") > -1
       ) {
-        if (
-          data.url.indexOf("https://www.google.com/recaptcha/api2/payload?c=") >
-          -1
-        ) {
-          challenge_request_procedure({ tabId: openedTabId });
-        }
-
-        console.log("Allow: " + data.url);
+        //console.log("Allow: " + data.url);
         return { cancel: false };
       }
 
       // Only affect URL inside the opened tab
       if (get_captch_url_by_url(data.url) !== false) {
-        console.log("Allow: " + data.url);
+        //console.log("Allow: " + data.url);
         return { cancel: false };
       }
 
-      console.log("Blocked: " + data.url);
+      //console.log("Blocked: " + data.url);
       return { cancel: true };
     }
   },
@@ -176,6 +170,28 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 chrome.webRequest.onCompleted.addListener(
   function(details) {
+    // Check if there is any automatic trigger URL to resolve captcha and put into clipboard.
+    // TODO: Replace static content by config settings
+    if (
+      details.url.includes("https://speeddragon.no-ip.info/cardb/imtt/insert/")
+    ) {
+      // TODO: Replace static content by config settings
+      context_menu_click(
+        { menuItemId: "https://www.automovelonline.mj.pt/" },
+        { id: details.tabId }
+      );
+    } else if (
+      details.url.includes(
+        "https://speeddragon.no-ip.info/cardb/tranquilidade/insert/"
+      )
+    ) {
+      // TODO: Replace static content by config settings
+      context_menu_click(
+        { menuItemId: "https://www.tranquilidade.pt/" },
+        { id: details.tabId }
+      );
+    }
+
     if (openedTabId !== details.tabId) return;
 
     var captcha_url = get_captch_url_by_url(details.url);
@@ -291,7 +307,7 @@ function get_captch_url_by_url(url) {
  * Copy a value to the clipboard
  *
  * @var debuggeeId object Debugger information
- * @var $value string value
+ * @var $value string Google Captcha Response
  */
 function copy_to_clipboard(debuggeeId, value) {
   chrome.tabs.executeScript(
@@ -310,7 +326,23 @@ function copy_to_clipboard(debuggeeId, value) {
             iconUrl: "icon_128.png"
           });
 
-          exit(debuggeeId, false);
+          // Insert into a input field
+          console.log("Execute script");
+          chrome.tabs.executeScript(
+            redirectToTabId,
+            {
+              code:
+                'document.getElementsByName("captcha_code")[0].setAttribute("value", "' +
+                value +
+                '"); document.querySelector("#leftContent button").click();'
+            },
+            function(x) {
+              console.log("Code Executed");
+
+              // $("#leftContent button").click()
+              exit(debuggeeId, false);
+            }
+          );
         }
       );
     }
@@ -338,7 +370,7 @@ function check_solved_workaround(debuggeeId) {
           result.length > 0 &&
           result[0].includes("03")
         ) {
-          console.log("WA67: CAPTCHA found.");
+          //console.log("WA67: CAPTCHA found.");
           validate_and_send_to_sinkholes(result[0]);
 
           if (global_human_click && settings.captcha_code_clipboard) {
@@ -348,13 +380,16 @@ function check_solved_workaround(debuggeeId) {
             exit(debuggeeId, false);
           }
         } else if (global_wa67_iterator > 55) {
-          console.log("WA67: CAPTCHA not found, exit.");
+          //console.log("WA67: CAPTCHA not found, exit.");
           exit(debuggeeId, false);
         } else {
-          console.log(
+          if (global_wa67_iterator == 3) {
+            challenge_request_procedure({ tabId: openedTabId });
+          }
+          /*console.log(
             "WA67: CAPTCHA not found, try again in 1 second. | Iteration: " +
               global_wa67_iterator
-          );
+          );*/
           global_wa67_iterator++;
 
           // Check again in 1000ms
@@ -381,6 +416,15 @@ function challenge_request_procedure(debuggeeId) {
 
     challenge_requested = true;
   }
+
+  console.log("Solve Captcha, please!");
+  // TODO: Check if is window to be update
+  // Increase windows height for WINDOW ()
+  chrome.windows.update(openedWindowId, {
+    width: 320,
+    height: 560,
+    focused: true
+  });
 
   if (
     global_human_click ||
@@ -410,6 +454,8 @@ function challenge_request_procedure(debuggeeId) {
 
 /**
  * Context Manu callback
+ *
+ * Start new window with the website to collect gCaptchaResponse
  */
 function context_menu_click(info, tab) {
   redirectToTabId = tab.id;
@@ -429,20 +475,22 @@ function create_tab(url, is_human_click) {
   var is_active = is_human_click && settings.new_tab_switch;
 
   chrome.windows.create(
-    { url: url, width: 200, height: 200, focused: false, type: "panel" },
+    { url: url, width: 320, height: 120, focused: false, type: "panel" },
     function(window) {
       openedTabId = window.tabs[0].id;
+      openedWindowId = window.id;
+
+      // Reload is used here to solve a race condition on multi-core CPUs.
+      // The URL is requested before all listeners are setup. So we reload to
+      // request its initial information again.
+
       chrome.tabs.reload(openedTabId, { bypassCache: true });
     }
   );
 
+  // TODO: Provide the behaviour of a new tab
   /*chrome.tabs.create({ url: url, active: is_active }, function(tab) {
     openedTabId = tab.id;
-
-    // Reload is used here to solve a race condition on multi-core CPUs.
-    // The URL is requested before all listeners are setup. So we reload to
-    // request its initial information again.
-
     chrome.tabs.reload(openedTabId, { bypassCache: true });
   });*/
 }
@@ -468,6 +516,7 @@ function exit(debuggeeId, on_removed) {
     global_captcha_url = null;
     request_sent = false;
     openedTabId = null;
+    openedWindowId = null;
     challenge_requested = false;
     global_wa67_iterator = 0;
   }

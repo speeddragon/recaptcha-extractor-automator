@@ -1,122 +1,136 @@
 <html>
   <head>
     <style>
-    a:link, a:active, a:hover, a:visited {
-      color: black;
-      font-weight: bold;
-      text-decoration: none;
-    }
+      select[readonly] {
+        background: #eee;
+        pointer-events: none;
+        touch-action: none;
+      }
 
-    a:hover {
-      color:blue;
-    }
-    code {
-      padding: 20px;
-      background: #f1f1f1;
-      margin: 20px;
-      display: block;
-      font-size: 13px;
-    }
-    button {
-      padding: 6px 16px;
-      border-radius: 0px;
-      background: #f3f3f3;
-      width: 80px;
-      border: 0px;
-    }
-    #save {
-      width: inherit;
-      padding: 8px 40px;
-      background: #f3f3f3;
-      border-radius: 3px;
-      float: left;
-      font-weight: bold;
-      font-size: 12px;
-    }
-    #status {
-      font-size: 13px;
-      font-weight: 300;
-      float: left;
-      padding: 9px 20px;
-      text-transform: capitalize;
-      color: chocolate;
-    }
-    body {
-      width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    h1 {
-      border-bottom: 3px solid black;
-      padding: 10px;
-      text-transform: uppercase;
-      font-size: 30px;
-      text-align: right;
-    }
-    h2 {
-      border-left: 3px solid #cacaca;
-      padding-left: 10px;
-      color: #484848;
-      margin-top: 50px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    table thead {
-      font-weight: bold;
-      padding: 15px;
-      /*background-color: #dedede;*/
-      border-bottom: 2px solid #ccc;
-    }
-    table thead td {
-      padding: 10px;
-      border-bottom: 1px solid #cccccc;
-    }
+      a:link,
+      a:active,
+      a:hover,
+      a:visited {
+        color: black;
+        font-weight: bold;
+        text-decoration: none;
+      }
 
-    table tbody td {
-      padding: 0px;
-      border-bottom: 1px solid #cccccc;
-    }
+      a:hover {
+        color: blue;
+      }
+      code {
+        padding: 20px;
+        background: #f1f1f1;
+        margin: 20px;
+        display: block;
+        font-size: 13px;
+      }
+      button {
+        padding: 6px 16px;
+        border-radius: 0px;
+        background: #f3f3f3;
+        width: 80px;
+        border: 0px;
+      }
+      #save {
+        width: inherit;
+        padding: 8px 40px;
+        background: #f3f3f3;
+        border-radius: 3px;
+        float: left;
+        font-weight: bold;
+        font-size: 12px;
+      }
+      #status {
+        font-size: 13px;
+        font-weight: 300;
+        float: left;
+        padding: 9px 20px;
+        text-transform: capitalize;
+        color: chocolate;
+      }
+      body {
+        width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        border-bottom: 3px solid black;
+        padding: 10px;
+        text-transform: uppercase;
+        font-size: 30px;
+        text-align: right;
+      }
+      h2 {
+        border-left: 3px solid #cacaca;
+        padding-left: 10px;
+        color: #484848;
+        margin-top: 50px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      table thead {
+        font-weight: bold;
+        padding: 15px;
+        /*background-color: #dedede;*/
+        border-bottom: 2px solid #ccc;
+      }
+      table thead td {
+        padding: 10px;
+        border-bottom: 1px solid #cccccc;
+      }
 
-    li {
-      list-style: none;
-    }
+      table tbody td {
+        padding: 0px;
+        border-bottom: 1px solid #cccccc;
+      }
 
-    input[type="file"] {
-      display: none;
-    }
-    .custom-file-upload {
-      padding: 6px 16px;
-      border-radius: 0px;
-      background: #f3f3f3;
-      width: 80px;
-      border: 0px;
-      font-size: 11px;
-      cursor: pointer;
-      margin-right: 10px;
-    }
+      li {
+        list-style: none;
+      }
 
-    #captchas_urls input[type="text"] {
-      width: 100%;
-      padding: 6px;
-      border: 0px;
-    }
+      input[type="file"] {
+        display: none;
+      }
+      .custom-file-upload {
+        padding: 6px 16px;
+        border-radius: 0px;
+        background: #f3f3f3;
+        width: 80px;
+        border: 0px;
+        font-size: 11px;
+        cursor: pointer;
+        margin-right: 10px;
+      }
 
-    #sinkholes_urls input[type="text"] {
-      width: 100%;
-      padding: 6px;
-      border: 0px;
-    }
+      #captchas_urls input[type="text"] {
+        width: 100%;
+        padding: 6px;
+        border: 0px;
+      }
 
-    #request_interval {
-      width: 40px;
-      text-align: right;
-      border: 0;
-      background: whitesmoke;
-      padding: 6px 5px;
-    }
+      #sinkholes_urls input[type="text"] {
+        width: 100%;
+        padding: 6px;
+        border: 0px;
+      }
+
+      #request_interval {
+        width: 40px;
+        text-align: right;
+        border: 0;
+        background: whitesmoke;
+        padding: 6px 5px;
+      }
+
+      .url_trigger_input {
+        margin-bottom: 20px;
+        width: 100%;
+      }
     </style>
   </head>
   <body>
@@ -130,8 +144,12 @@
       <h2>Stats</h2>
       <div>
         <ul>
-          <li>Requests without challenge: <b id="requests_without_challange">0</b></li>
-          <li>Requests with challenge: <b id="requests_with_challange">0</b></li>
+          <li>
+            Requests without challenge: <b id="requests_without_challange">0</b>
+          </li>
+          <li>
+            Requests with challenge: <b id="requests_with_challange">0</b>
+          </li>
           <li>Solved in a row: <b id="solved_in_a_row">0</b></li>
         </ul>
       </div>
@@ -139,10 +157,14 @@
 
     <div>
       <h2>Save / Load settings from file</h2>
-      <div>You can download your settings <a id="save_settings_file">here</a>.</div>
+      <div>
+        You can download your settings <a id="save_settings_file">here</a>.
+      </div>
       <div style="margin-top: 20px;">
-        <label for="settings_file" class="custom-file-upload">Select file</label>
-        <input id="settings_file" type="file"/>
+        <label for="settings_file" class="custom-file-upload"
+          >Select file</label
+        >
+        <input id="settings_file" type="file" />
         <button id="read_settings_file">Load</button>
       </div>
 
@@ -151,19 +173,33 @@
       <ul>
         <li>
           <input type="checkbox" id="captcha_code_clipboard" />
-          <label>Copy <i>gCaptchaCode</i> to clipboard on <i>Human</i> interaction.</label>
+          <label
+            >Copy <i>gCaptchaCode</i> to clipboard on
+            <i>Human</i> interaction.</label
+          >
         </li>
         <li>
           <input type="checkbox" id="new_tab_switch" />
-          <label>Switch to a new tab to view ReCaptcha to be solved more quickly (<i>Human</i> only).</label>
+          <label
+            >Switch to a new tab to view ReCaptcha to be solved more quickly (<i
+              >Human</i
+            >
+            only).</label
+          >
         </li>
         <li>
           <input type="checkbox" id="alert_user_solve_captcha" />
-          <label>Alert <i>Human</i> to solve captcha, if ReCaptcha ask to solve it? (<i>Automator</i> only).</label>
+          <label
+            >Alert <i>Human</i> to solve captcha, if ReCaptcha ask to solve it?
+            (<i>Automator</i> only).</label
+          >
         </li>
         <li>
           <input type="checkbox" id="sinkhole_on_manual_request" />
-          <label>Send <i>gCaptchaCode</i> to a sinkhole on <i>Human</i> request?</label>
+          <label
+            >Send <i>gCaptchaCode</i> to a sinkhole on
+            <i>Human</i> request?</label
+          >
         </li>
       </ul>
 
@@ -183,14 +219,22 @@
           <tbody id="captchas_urls">
             <tr>
               <td>
-                <input style="width: 100%;" type="text" id="insert_url" placeholder="https://www.example.com/" />
+                <input
+                  style="width: 100%;"
+                  type="text"
+                  id="insert_url"
+                  placeholder="https://www.example.com/"
+                />
               </td>
               <td>
-                <input style="width: 100%;" type="text" id="site_key" placeholder="3LdVBqhUUcAAAABgG0kNhtcpNQoPlDxj9hd9x2icZ" />
+                <input
+                  style="width: 100%;"
+                  type="text"
+                  id="site_key"
+                  placeholder="3LdVBqhUUcAAAABgG0kNhtcpNQoPlDxj9hd9x2icZ"
+                />
               </td>
-              <td>
-                <button id="add_url">Add</button>
-              </td>
+              <td><button id="add_url">Add</button></td>
             </tr>
           </tbody>
         </table>
@@ -198,9 +242,14 @@
 
       <h2>Sinkholes</h2>
       <div>
-        <p>Sinkholes are endpoints that receive <i>gCaptchaCode</i> to request via other
-      IP, like for example TOR networks.</p>
-        <p>Your sinkhole will receive <i>referrer_url</i>, <i>guid</i> and <i>gCaptchaCode</i> as POST parameters.</p>
+        <p>
+          Sinkholes are endpoints that receive <i>gCaptchaCode</i> to request
+          via other IP, like for example TOR networks.
+        </p>
+        <p>
+          Your sinkhole will receive <i>referrer_url</i>, <i>guid</i> and
+          <i>gCaptchaCode</i> as POST parameters.
+        </p>
       </div>
 
       <table>
@@ -213,20 +262,64 @@
         <tbody id="sinkholes_urls">
           <tr>
             <td>
-              <input type="text" id="sinkhole_insert_url" placeholder="https://www.sinkhole.com/" />
+              <input
+                type="text"
+                id="sinkhole_insert_url"
+                placeholder="https://www.sinkhole.com/"
+              />
             </td>
-            <td>
-              <button id="sinkhole_add_url">Add</button>
-            </td>
+            <td><button id="sinkhole_add_url">Add</button></td>
           </tr>
         </tbody>
       </table>
 
-      <h2>Automation</h2>
-      <input type="checkbox" id="automator_switch" />
-      <label>Enabled</label>
+      <h2>Automatic URL Trigger</h2>
 
-      <div>Request every <input id="request_interval" placeholder="120" /> minutes.</div>
+      <div>
+        <p>
+          This will launch a new Google Captcha Request when a determined URL is
+          reach.
+        </p>
+      </div>
+
+      <ul style="padding-inline-end: 40px;">
+        <div>
+          <div><b>URL:</b></div>
+          <div>
+            <input
+              class="url_trigger_input"
+              value="https://www.example.com/insert"
+            />
+          </div>
+          <div><b>Code:</b></div>
+          <div>
+            <textarea
+              class="url_trigger_input"
+            >document.getElementsByName("captcha_code")[0].setAttribute("value","%CAPTCHA%"); document.querySelector("button").click();</textarea>
+          </div>
+          <div><b>Captcha URL</b></div>
+          <div>
+            <select
+              id="add_url_trigger_captcha_url_list"
+              class="url_trigger_input"
+            >
+            </select>
+          </div>
+        </div>
+
+        <button id="add_url_trigger_btn" style="margin-bottom: 40px;">
+          Add
+        </button>
+
+        <li class="automatic_url_triggers"></li>
+      </ul>
+
+      <h2>Automation</h2>
+      <input type="checkbox" id="automator_switch" /> <label>Enabled</label>
+
+      <div>
+        Request every <input id="request_interval" placeholder="120" /> minutes.
+      </div>
     </div>
 
     <script src="options.js"></script>
