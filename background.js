@@ -435,16 +435,6 @@ function create_tab(url, is_human_click) {
       chrome.tabs.reload(openedTabId, { bypassCache: true });
     }
   );
-
-  /*chrome.tabs.create({ url: url, active: is_active }, function(tab) {
-    openedTabId = tab.id;
-
-    // Reload is used here to solve a race condition on multi-core CPUs.
-    // The URL is requested before all listeners are setup. So we reload to
-    // request its initial information again.
-
-    chrome.tabs.reload(openedTabId, { bypassCache: true });
-  });*/
 }
 
 /**

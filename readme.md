@@ -89,3 +89,12 @@ Sinkholes are endpoints that are created to receive **gCaptchaCode** and use it.
 When **enabled**, it will open a new tab (on background), load the ReCaptcha script, click in it, harvest **gCaptchaCode** and send to the sinkholes defined.
 
 The frequency that this will be done can be defined, but is recommended to be above **100** minutes.
+
+## Development
+
+To work on this extension you need to follow these steps:
+
+- In your Chrome browser go to Extensions (for example, `chrome://extensions/`).
+- Enable `Development Mode`.
+- Checkout this repo into your computer.
+- Click on `Load unpacked` and select this project folder.
